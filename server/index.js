@@ -46,56 +46,162 @@ app.post("/createTables",async(req,res)=>{
         foreign key(eventid) references events(id)
         );`);
 
-        res.status(201).json({message:"Tables created successfully"});
+        res.status(201).json({message:"Tables created successfully"})
     }
     catch(error){
-        console.log(`error message : ${error.message}`);
-        res.status(500).json({message:"Error creating tables"});
+        console.log(`error message : ${error.message}`)
+        res.status(500).json({message:"Error creating tables"})
     }
 });
 
-app.post("/addUsers",async(req,res)=>{
+app.post("/createUsers",async(req,res)=>{
     try{
-        const {name,email}=req.body;
+        const {name,email}=req.body
         if (!name || !email){
-            return res.status(400).json({ error: "All fields are required" });
+            return res.status(400).json({ error: "All fields are required" })
         }
-        await db.query('insert into users(name,email) values($1,$2)',[name,email]);
-        res.status(201).json({message:"Added user successfully"});
+        await db.query('insert into users(name,email) values($1,$2)',[name,email])
+        res.status(201).json({message:"Added user successfully"})
     }
     catch(error){
-        console.log(`error message : ${error.message}`);
-        res.status(500).json({message:"Error creating an user"});
+        console.log(`error message : ${error.message}`)
+        res.status(500).json({message:"Error creating an user"})
     }
 });
 
-app.post("/addEvents", async (req, res) => {
+app.post("/createEvents",async(req,res)=>{
   try {
-    const { title, date, time, location, capacity } = req.body;
+    const { title,date,time,location,capacity } = req.body
     if (!title || !date || !time || !location || !capacity){
-      return res.status(400).json({ error: "All fields are required" });
+      return res.status(400).json({message:"All fields are required"})
     }
     const datetime = new Date(`${date}T${time}`);
     if (isNaN(datetime)) {
-      return res.status(400).json({ error: "Invalid date or time format" });
+      return res.status(400).json({message:"Invalid format of either date or time"})
     }
     if (capacity <= 0 || capacity > 1000) {
-      return res.status(400).json({ error: "Capacity must be between 1 and 1000" });
+      return res.status(400).json({message: "Capacity must be less than 1000"})
     }
-
     await db.query(
       `insert into events(title, datetime, location, capacity)
        values ($1, $2, $3, $4)`,[title, datetime, location, capacity]
-    );
+    )
 
-    res.status(201).json({message: "Event created successfully"});
+    res.status(201).json({message:"Event created successfully"})
   } 
   catch (error){
-    console.error(`error message: ${error.message}`);
-    res.status(500).json({message:"Internal server error while creating an event"});
+    console.error(`error message: ${error.message}`)
+    res.status(500).json({message:"Internal server error while creating an event"})
   }
 });
 
+app.post("/registerEvent/:id",async(req, res)=>{
+  const { userId } = req.body
+  const eventId = req.params.id
+  try {
+    const event = await db.query("select * from events where id = $1",[eventId])
+    if(event.rows.length === 0){
+      return res.status(404).json({message:"Event not found"})
+    }
+    const check = await db.query(
+      "select * from registrations where userid = $1 and eventid = $2",
+      [userId, eventId]
+    )
+    if(check.rows.length > 0){
+      return res.status(400).json({message:"User already registered"})
+    }
+    await db.query("insert into registrations(userid, eventid) values($1, $2)",[userId,eventId])
+
+    res.status(201).json({message:"User registered to event"})
+  }
+  catch(error){
+    console.log(`error message : ${error.message}`)
+    res.status(500).json({message:error.message})
+  }
+});
+
+app.get("/event/:id",async(req,res)=>{
+  const eventId = req.params.id
+  try {
+    const eventRes = await db.query("select * from events where id = $1",[eventId])
+    if(eventRes.rows.length === 0){
+      return res.status(404).json({message:"Event not found"})
+    }
+    const regUsers = await db.query(
+      `select users.id, users.name, users.email
+       from registrations
+       join users on registrations.userid = users.id
+       where registrations.eventid = $1`,
+      [eventId]
+    )
+
+    res.json({...eventRes.rows[0], registrations: regUsers.rows})
+  }
+  catch(error){
+    console.log(`error message : ${error.message}`)
+    res.status(500).json({message:error.message})
+  }
+});
+
+app.get("/upcomingEvents",async(req,res)=> {
+  try {
+    const result = await db.query(`
+      select * from events
+      where datetime > CURRENT_TIMESTAMP
+      order by datetime asc
+    `)
+
+    res.json(result.rows)
+  }
+  catch (error) {
+    console.log(`error message : ${error.message}`)
+    res.status(500).json({message: error.message})
+  }
+});
+
+app.delete("/cancelEvent/:id",async(req,res)=>{
+  const {userId} = req.body
+  const eventId = req.params.id
+  try {
+    const result = await db.query(
+      "delete from registrations where userid = $1 and eventid = $2",
+      [userId, eventId]
+    )
+    if(result.rowCount === 0){
+      return res.status(400).json({message: "User was not registered for this event"})
+    }
+
+    res.json({message:"Registration cancelled"})
+  }
+  catch (error) {
+    console.log(`error message : ${error.message}`)
+    res.status(500).json({ error: error.message })
+  }
+});
+
+app.get("/eventStats/:id",async(req, res)=>{
+  const eventId = req.params.id
+  try {
+    const eventRes = await db.query("select * from events where id = $1", [eventId]);
+    if(eventRes.rows.length === 0){
+      return res.status(404).json({message:"Event not found"})
+    }
+    const capacity = eventRes.rows[0].capacity
+    const regRes = await db.query("select count(*) from registrations where eventid = $1", [eventId])
+    const registered = parseInt(regRes.rows[0].count)
+    const remaining = capacity - registered
+
+    res.json({
+      totalRegistrations: registered,
+      remainingCapacity: remaining,
+      capacityUsed: ((registered / capacity) * 100).toFixed(2) + "%",
+    })
+  }
+  catch(error){
+    console.log(`error message : ${error.message}`)
+    res.status(500).json({message:error.message})
+  }
+});
 
 app.listen(port,()=>{
     console.log(`Server running on port ${port}.`);
