@@ -22,6 +22,7 @@ const db=new Pool({
     password:process.env.password,
 });
 
+//This endpoint creates 3 tables ,that is users ,events and registrations respectively.
 app.post("/createTables",async(req,res)=>{
     try{
         await db.query(`create table events(
@@ -54,6 +55,7 @@ app.post("/createTables",async(req,res)=>{
     }
 });
 
+//This endpoint adds users to the users table.
 app.post("/createUsers",async(req,res)=>{
     try{
         const {name,email}=req.body
@@ -69,6 +71,7 @@ app.post("/createUsers",async(req,res)=>{
     }
 });
 
+//This endpoint adds the event to the events table.
 app.post("/createEvents",async(req,res)=>{
   try {
     const { title,date,time,location,capacity } = req.body
@@ -95,6 +98,7 @@ app.post("/createEvents",async(req,res)=>{
   }
 });
 
+//This endpoint registers an event for a particular user ,where the id of the event must be passed as a parameter in the endpoint. 
 app.post("/registerEvent/:id",async(req, res)=>{
   const { userId } = req.body
   const eventId = req.params.id
@@ -120,6 +124,7 @@ app.post("/registerEvent/:id",async(req, res)=>{
   }
 });
 
+//This endpoint retrives event details along with its registered users.
 app.get("/event/:id",async(req,res)=>{
   const eventId = req.params.id
   try {
@@ -143,6 +148,7 @@ app.get("/event/:id",async(req,res)=>{
   }
 });
 
+//This endpoint displays the upcoming events.
 app.get("/upcomingEvents",async(req,res)=> {
   try {
     const result = await db.query(`
@@ -159,6 +165,7 @@ app.get("/upcomingEvents",async(req,res)=> {
   }
 });
 
+//This endpoint cancels an event for a particular user whose id must be mentioned as a parameter in the endpoint.
 app.delete("/cancelEvent/:id",async(req,res)=>{
   const {userId} = req.body
   const eventId = req.params.id
@@ -179,6 +186,7 @@ app.delete("/cancelEvent/:id",async(req,res)=>{
   }
 });
 
+//This endpoint displays the stats of a particular event whose id must be mentioned as a parameter in the endpoint.
 app.get("/eventStats/:id",async(req, res)=>{
   const eventId = req.params.id
   try {
