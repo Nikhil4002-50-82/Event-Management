@@ -1,4 +1,4 @@
-#Event-Management
+# Event-Management
 
 A simple RESTful API built with Node.js, Express, PostgreSQL for managing users, events, and registrations.
 
@@ -57,9 +57,9 @@ The server will run at `http://localhost:5000`.
 
 ---
 
-##Sample Request Formats
+## Sample Request Formats
 
-###Create a User
+### Create a User
 
 ```json
 POST /createUsers
@@ -69,7 +69,7 @@ POST /createUsers
 }
 ```
 
-###Create an Event
+### Create an Event
 
 ```json
 POST /createEvents
@@ -82,7 +82,7 @@ POST /createEvents
 }
 ```
 
-###Register a User to Event
+### Register a User to Event
 
 ```json
 POST /registerEvent/1
@@ -91,7 +91,7 @@ POST /registerEvent/1
 }
 ```
 
-###Cancel a Registration
+### Cancel a Registration
 
 ```json
 DELETE /cancelEvent/1
@@ -102,7 +102,7 @@ DELETE /cancelEvent/1
 
 ---
 
-##Technologies Used
+## Technologies Used
 
 * Node.js
 * Express
@@ -114,6 +114,6 @@ DELETE /cancelEvent/1
 
 ---
 
-##Contact
+## Contact
 
 Maintained by Nikhil R Nambiar.
